@@ -19,12 +19,36 @@ GROUP_ID = app.config['GROUP_ID']
 print("GROUP_ID:", GROUP_ID)
 
 #utilities
+#these need to be put into respective models eventually
 def getPostURL(id):
 	id_list = id.split("_")
 	group_id = id_list[0]
 	post_id = id_list[1]
 	url = "https://www.facebook.com/groups/"+group_id+"/permalink/"+post_id
 	return url
+
+def getAlbumURL(fbid):
+	url = "https://www.facebook.com/photo.php?fbid="+fbid
+	return url
+
+def getPhotoURLs(graph, fbid):
+	photo = graph.get_object(fbid)
+	thumbnail = photo.get('picture')
+	source = photo.get('source')
+	return (source, thumbnail)
+
+def getPhotoFromFbid(fbid):
+	photo = models.Photo.query.filter_by(fbid=fbid).first()
+	if photo:
+		return photo
+	else:
+		return None
+
+def createPhoto(fbid, source, thumbnail):
+	photo = models.Photo(fbid,source,thumbnail)
+	db.session.add(photo)
+	db.session.commit()
+	return photo
 
 #returns models.User
 def getUserFromFbid(fbid):
@@ -81,32 +105,47 @@ def getPosts(group_id):
 
 	posts = graph.get_connections(group_id, "feed")
 	
-	for post in posts['data']:
-		fb_postid = post['id']
+	for post in posts.get('data'):
+		fb_postid = post.get('id')
 		#see if the post already exists in our database
 		post_obj = getPostFromFbid(fb_postid)
 		if post_obj != None:
 			print("post exists!", post_obj)
 			#update the post if needed
 		else:
-			fb_userid = post['from']['id']
-			fb_name = post['from']['name']
+			#assuming all posts have 'from'
+			fb_userid = post.get('from').get('id')
+			fb_name = post.get('from').get('name')
+			
+				
 			user = getUserFromFbid(fb_userid)
 			
 			#create new user if not in database
 			if not user:
 				user = createUser(fb_userid, name=fb_name)
 
-			body = post['message']
+			body = post.get('message')
 			link = getPostURL(fb_postid)
-			print(dateparser.parse(post['created_time']))
-			post_date = dateparser.parse(post['created_time'])
-			post = models.Post(link, user.id, group.id, fb_postid, body=body, post_date=post_date)
+			album_link = None
+			photo = None
+			album_id = post.get('object_id')
+			if album_id:
+				photo = getPhotoFromFbid(album_id)
+				album_link = getAlbumURL(album_id)
+				if not photo:
+					photo_urls = getPhotoURLs(graph, album_id)
+					source = photo_urls[0]
+					thumbnail = photo_urls[1]
+					photo = createPhoto(album_id,source,thumbnail)
+			photoid = None if not photo else photo.id	
+			post_date = dateparser.parse(post.get('created_time'))
+			post = models.Post(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, body=body, post_date=post_date)
 			print("NEW POST!!!", post)
 			db.session.add(post)
 			db.session.commit()
 			
 
-
+db.drop_all()
+db.create_all()
 
 getPosts(GROUP_ID) 
