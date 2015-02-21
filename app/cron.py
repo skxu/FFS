@@ -1,9 +1,11 @@
 from app import db, app
 from app.users import models
+from words import stopwords, punctuation
+import string
 import facebook
 import dateutil.parser as dateparser
 
-
+debug = True
 print("hello from cron.py")
 
 FB_API_VERSION = app.config['FB_API_VERSION']
@@ -89,12 +91,37 @@ def createGroup(fbid, name):
 	db.session.commit()
 	return group
 
+def getTagFromName(name):
+	tag = models.Tag.query.filter_by(name=name).first()
+	if tag:
+		return tag
+	else:
+		return None
+
+def createTag(name):
+	tag = models.Tag(name)
+	db.session.add(tag)
+	db.session.commit()
+	return tag
+
+def createPostTag(postid, tagid):
+	post_tag = models.PostTag(postid, tagid)
+	db.session.add(post_tag)
+	db.session.commit()
+	return post_tag
+
+def createPost(link, userid, groupid, fbid, photoid=None, album=None, body=None, likes=0, post_date=None):
+	post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, body=body, likes=likes, post_date=post_date)
+	db.session.add(post)
+	db.session.commit()
+	return post
+
 def extendAccessToken():
 	graph = facebook.GraphAPI(ACCESS_TOKEN, FB_API_VERSION)
 	graph.extend_access_token(FB_APP_ID,FB_APP_SECRET)
 
 
-#important stuff
+#important stuff that actually belongs in cron.py
 def getPosts(group_id):
 	graph = facebook.GraphAPI(ACCESS_TOKEN, FB_API_VERSION)
 
@@ -103,8 +130,22 @@ def getPosts(group_id):
 		name = getGroupName(graph, group_id)
 		group = createGroup(group_id, name)
 
-	posts = graph.get_connections(group_id, "feed")
+	posts = graph.get_connections(group_id, "feed", limit=100)
+	print(posts.get('paging'))
+	processPosts(graph, group, posts)
 	
+	#let's go through the old posts since we don't have that data yet!
+	if debug:
+		counter = 0
+		while counter < 5:
+			next_url = posts.get('paging').get('next')
+			posts = graph.direct_request(next_url)
+			processPosts(graph, group, posts)
+			counter+=1
+		
+		
+
+def processPosts(graph, group, posts):
 	for post in posts.get('data'):
 		fb_postid = post.get('id')
 		#see if the post already exists in our database
@@ -117,10 +158,8 @@ def getPosts(group_id):
 			fb_userid = post.get('from').get('id')
 			fb_name = post.get('from').get('name')
 			
-				
+			#attempt to get user object, otherwise make one
 			user = getUserFromFbid(fb_userid)
-			
-			#create new user if not in database
 			if not user:
 				user = createUser(fb_userid, name=fb_name)
 
@@ -129,7 +168,9 @@ def getPosts(group_id):
 			album_link = None
 			photo = None
 			album_id = post.get('object_id')
+			
 			if album_id:
+				#attempt to get photo object, otherwise make one
 				photo = getPhotoFromFbid(album_id)
 				album_link = getAlbumURL(album_id)
 				if not photo:
@@ -139,10 +180,27 @@ def getPosts(group_id):
 					photo = createPhoto(album_id,source,thumbnail)
 			photoid = None if not photo else photo.id	
 			post_date = dateparser.parse(post.get('created_time'))
-			post = models.Post(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, body=body, post_date=post_date)
-			print("NEW POST!!!", post)
-			db.session.add(post)
-			db.session.commit()
+			post = createPost(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, body=body, post_date=post_date)
+			if debug:
+				print("NEW POST!!!", post)
+			stopwordcount = 0
+			if body:
+				for word in body.split(' '):
+					word = word.lower()
+
+					#strip out punctuation
+					word = word.translate(punctuation)
+					if word in stopwords:
+						stopwordcount+=1
+					else:
+						tag = getTagFromName(word)
+						if not tag:
+							tag = createTag(word)
+						post_tag = createPostTag(post.id, tag.id)
+			if debug:
+				print ("stopwordcount", stopwordcount)
+
+			
 			
 
 db.drop_all()
