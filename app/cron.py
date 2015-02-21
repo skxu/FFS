@@ -1,6 +1,7 @@
 from app import db, app
 from app.users import models
 import facebook
+import dateutil.parser as dateparser
 
 
 print("hello from cron.py")
@@ -19,7 +20,10 @@ print("GROUP_ID:", GROUP_ID)
 
 #utilities
 def getPostURL(id):
-	url = "https://www.facebook.com/groups/"+GROUP_ID+"/permalink/"+id
+	id_list = id.split("_")
+	group_id = id_list[0]
+	post_id = id_list[1]
+	url = "https://www.facebook.com/groups/"+group_id+"/permalink/"+post_id
 	return url
 
 #returns models.User
@@ -66,7 +70,8 @@ def getPosts():
 			userid = getUserFromFbid(fb_userid).id
 			body = post['message']
 			link = getPostURL(fb_postid)
-			post_date = post['created_time']
+			print(dateparser.parse(post['created_time']))
+			post_date = dateparser.parse(post['created_time'])
 			post = models.Post(link, userid, fb_postid, body=body, post_date=post_date)
 			print("NEW POST!!!", post)
 			db.session.add(post)
