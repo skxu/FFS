@@ -1,11 +1,16 @@
 from app import db, app
 from app.users import models
 from words import stopwords, punctuation
+from apscheduler.schedulers.background import BackgroundScheduler
 import string
 import facebook
+import logging
 import dateutil.parser as dateparser
 
+logging.basicConfig()
+
 debug = True
+nuke = False
 print("hello from cron.py")
 
 FB_API_VERSION = app.config['FB_API_VERSION']
@@ -16,7 +21,7 @@ FB_APP_NAME = app.config['FB_APP_NAME']
 #this isn't really the right way to do things
 ACCESS_TOKEN = app.config['ACCESS_TOKEN']
 
-#temp
+#temp, eventually use ALLLL the groups
 GROUP_ID = app.config['GROUP_ID']
 print("GROUP_ID:", GROUP_ID)
 
@@ -168,17 +173,16 @@ def processPosts(graph, group, posts):
 			print("post exists!", post_obj)
 			#update the post if needed
 			update_date = dateparser.parse(post.get('updated_time'))
-			if update_date > post_obj.update_date:
+			if update_date.replace(tzinfo=None) > post_obj.update_date.replace(tzinfo=None):
 				#we need to update!
-				print("updating post")
+				print("updating post",update_date.replace(tzinfo=None), post_obj.update_date.replace(tzinfo=None))
 				post_obj.body = post.get('message')
 				#TODO: refilter tags & stuff
-				post_obj.update_date = update_date
-
-				comments = post.get('comments')
-				db.session.update(post_obj)
+				post_obj.update_date = update_date.replace(tzinfo=None)
 				db.session.commit()
-				processComments(post, comments)
+				
+				comments = post.get('comments')
+				processComments(post_obj, comments)
 
 		#post does not exist in our database, make a new one		
 		else:
@@ -208,7 +212,7 @@ def processPosts(graph, group, posts):
 					thumbnail = photo_urls[1]
 					photo = createPhoto(album_id,source,thumbnail)
 			photoid = None if not photo else photo.id	
-			post_date = dateparser.parse(post.get('created_time'))
+			post_date = dateparser.parse(post.get('created_time')).replace(tzinfo=None)
 			post = createPost(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, body=body, post_date=post_date, update_date=post_date)
 			if debug:
 				print("NEW POST!!!", post)
@@ -248,8 +252,15 @@ def processComments(post, comments):
 		create_date = dateparser.parse(comment.get('created_time'))
 		comment = createComment(post.id, user.id, body=body, create_date=create_date)
 			
+if nuke:
+	db.drop_all()
+	db.create_all()
 
-db.drop_all()
-db.create_all()
+def updatePostsJob():
+	getPosts(GROUP_ID)
 
-getPosts(GROUP_ID) 
+scheduler = BackgroundScheduler()
+scheduler.add_job(updatePostsJob, 'interval', seconds=60)
+scheduler.start()
+
+
