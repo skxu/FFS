@@ -10,9 +10,12 @@ app = Flask("FFS", template_folder=tmpl_dir)
 
 #setup configurations
 app.config.from_object('config')
+print(app.config)
+
 
 db = SQLAlchemy(app)
 
+import cron
 
 
 @app.errorhandler(404)
