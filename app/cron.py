@@ -31,12 +31,14 @@ def getUserFromFbid(fbid):
 	user = models.User.query.filter_by(fbid=fbid).first()
 	if user:
 		return user
-	#no user with fbid, let's make one!
 	else:
-		user = models.User(fbid=fbid)
-		db.session.add(user)
-		db.session.commit()
-		return user
+		return None
+
+def createUser(fbid, name=None):
+	user = models.User(fbid=fbid, name=name)
+	db.session.add(user)
+	db.session.commit()
+	return user
 
 #returns models.Post
 def getPostFromFbid(fbid):
@@ -46,17 +48,38 @@ def getPostFromFbid(fbid):
 	else:
 		return None
 
+def getGroupFromFbid(fbid):
+	group = models.Group.query.filter_by(fbid=fbid).first()
+	if group:
+		return group
+	else:
+		return None
+
+def getGroupName(graph, fbid):
+	group = graph.get_object(fbid)
+	return group['name']
+
+def createGroup(fbid, name):
+	group = models.Group(fbid, name)
+	db.session.add(group)
+	db.session.commit()
+	return group
+
 def extendAccessToken():
 	graph = facebook.GraphAPI(ACCESS_TOKEN, FB_API_VERSION)
 	graph.extend_access_token(FB_APP_ID,FB_APP_SECRET)
 
 
 #important stuff
-def getPosts():
+def getPosts(group_id):
 	graph = facebook.GraphAPI(ACCESS_TOKEN, FB_API_VERSION)
 
-	group = graph.get_object(GROUP_ID)
-	posts = graph.get_connections(GROUP_ID, "feed")
+	group = getGroupFromFbid(group_id)
+	if not group:
+		name = getGroupName(graph, group_id)
+		group = createGroup(group_id, name)
+
+	posts = graph.get_connections(group_id, "feed")
 	
 	for post in posts['data']:
 		fb_postid = post['id']
@@ -67,12 +90,18 @@ def getPosts():
 			#update the post if needed
 		else:
 			fb_userid = post['from']['id']
-			userid = getUserFromFbid(fb_userid).id
+			fb_name = post['from']['name']
+			user = getUserFromFbid(fb_userid)
+			
+			#create new user if not in database
+			if not user:
+				user = createUser(fb_userid, name=fb_name)
+
 			body = post['message']
 			link = getPostURL(fb_postid)
 			print(dateparser.parse(post['created_time']))
 			post_date = dateparser.parse(post['created_time'])
-			post = models.Post(link, userid, fb_postid, body=body, post_date=post_date)
+			post = models.Post(link, user.id, group.id, fb_postid, body=body, post_date=post_date)
 			print("NEW POST!!!", post)
 			db.session.add(post)
 			db.session.commit()
@@ -80,4 +109,4 @@ def getPosts():
 
 
 
-getPosts() 
+getPosts(GROUP_ID) 
