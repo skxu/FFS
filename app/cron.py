@@ -110,11 +110,25 @@ def createPostTag(postid, tagid):
 	db.session.commit()
 	return post_tag
 
-def createPost(link, userid, groupid, fbid, photoid=None, album=None, body=None, likes=0, post_date=None):
-	post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, body=body, likes=likes, post_date=post_date)
+def createPost(link, userid, groupid, fbid, photoid=None, album=None, body=None, likes=0, post_date=None, update_date=None):
+	post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, body=body, likes=likes, post_date=post_date, update_date=update_date)
 	db.session.add(post)
 	db.session.commit()
 	return post
+
+def getCommentFromFbid(fbid):
+	comment = models.Comment.query.filter_by(fbid=fbid).first()
+	if comment:
+		return comment
+	else:
+		return None
+
+#not using update_date for now
+def createComment(postid, userid, body, create_date):
+	comment = models.Comment(postid, userid, body=body, create_date=create_date)
+	db.session.add(comment)
+	db.session.commit()
+	return comment
 
 def extendAccessToken():
 	graph = facebook.GraphAPI(ACCESS_TOKEN, FB_API_VERSION)
@@ -143,7 +157,7 @@ def getPosts(group_id):
 			processPosts(graph, group, posts)
 			counter+=1
 		
-		
+
 
 def processPosts(graph, group, posts):
 	for post in posts.get('data'):
@@ -153,6 +167,20 @@ def processPosts(graph, group, posts):
 		if post_obj != None:
 			print("post exists!", post_obj)
 			#update the post if needed
+			update_date = dateparser.parse(post.get('updated_time'))
+			if update_date > post_obj.update_date:
+				#we need to update!
+				print("updating post")
+				post_obj.body = post.get('message')
+				#TODO: refilter tags & stuff
+				post_obj.update_date = update_date
+
+				comments = post.get('comments')
+				db.session.update(post_obj)
+				db.session.commit()
+				processComments(post, comments)
+
+		#post does not exist in our database, make a new one		
 		else:
 			#assuming all posts have 'from'
 			fb_userid = post.get('from').get('id')
@@ -164,11 +192,12 @@ def processPosts(graph, group, posts):
 				user = createUser(fb_userid, name=fb_name)
 
 			body = post.get('message')
+			comments = post.get('comments')
 			link = getPostURL(fb_postid)
+
 			album_link = None
 			photo = None
 			album_id = post.get('object_id')
-			
 			if album_id:
 				#attempt to get photo object, otherwise make one
 				photo = getPhotoFromFbid(album_id)
@@ -180,7 +209,7 @@ def processPosts(graph, group, posts):
 					photo = createPhoto(album_id,source,thumbnail)
 			photoid = None if not photo else photo.id	
 			post_date = dateparser.parse(post.get('created_time'))
-			post = createPost(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, body=body, post_date=post_date)
+			post = createPost(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, body=body, post_date=post_date, update_date=post_date)
 			if debug:
 				print("NEW POST!!!", post)
 			stopwordcount = 0
@@ -201,6 +230,23 @@ def processPosts(graph, group, posts):
 				print ("stopwordcount", stopwordcount)
 
 			
+			processComments(post, comments)
+
+def processComments(post, comments):
+	if comments == None:
+		return
+	for comment in comments.get('data'):
+		fb_userid = comment.get('from').get('id')
+		comment_obj = getCommentFromFbid(fb_userid)
+		if comment_obj:
+			continue
+		fb_name = comment.get('from').get('name')
+		user = getUserFromFbid(fb_userid)
+		if not user:
+			user = createUser(fb_userid, name=fb_name)
+		body = comment.get('message')
+		create_date = dateparser.parse(comment.get('created_time'))
+		comment = createComment(post.id, user.id, body=body, create_date=create_date)
 			
 
 db.drop_all()
