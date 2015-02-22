@@ -1,5 +1,5 @@
 from app import db, app
-from app.users.models import User, Group, Post, Photo, Tag, Comment, PostTag
+from app.users import models
 from words import stopwords, punctuation
 from apscheduler.schedulers.background import BackgroundScheduler
 import string
@@ -46,42 +46,42 @@ def getPhotoInfo(graph, fbid):
 	return (source, thumbnail, body)
 
 def getPhotoFromFbid(fbid):
-	photo = Photo.query.filter_by(fbid=fbid).first()
+	photo = models.Photo.query.filter_by(fbid=fbid).first()
 	if photo:
 		return photo
 	else:
 		return None
 
 def createPhoto(fbid, source, thumbnail, body):
-	photo = Photo(fbid,source,thumbnail, body=body)
+	photo = models.Photo(fbid,source,thumbnail, body=body)
 	db.session.add(photo)
 	db.session.commit()
 	return photo
 
-#returns User
+#returns models.User
 def getUserFromFbid(fbid):
-	user = User.query.filter_by(fbid=fbid).first()
+	user = models.User.query.filter_by(fbid=fbid).first()
 	if user:
 		return user
 	else:
 		return None
 
 def createUser(fbid, name=None):
-	user = User(fbid=fbid, name=name)
+	user = models.User(fbid=fbid, name=name)
 	db.session.add(user)
 	db.session.commit()
 	return user
 
-#returns Post
+#returns models.Post
 def getPostFromFbid(fbid):
-	post = Post.query.filter_by(fbid=fbid).first()
+	post = models.Post.query.filter_by(fbid=fbid).first()
 	if post:
 		return post
 	else:
 		return None
 
 def getGroupFromFbid(fbid):
-	group = Group.query.filter_by(fbid=fbid).first()
+	group = models.Group.query.filter_by(fbid=fbid).first()
 	if group:
 		return group
 	else:
@@ -92,38 +92,38 @@ def getGroupName(graph, fbid):
 	return group['name']
 
 def createGroup(fbid, name):
-	group = Group(fbid, name)
+	group = models.Group(fbid, name)
 	db.session.add(group)
 	db.session.commit()
 	return group
 
 def getTagFromName(name):
-	tag = Tag.query.filter_by(name=name).first()
+	tag = models.Tag.query.filter_by(name=name).first()
 	if tag:
 		return tag
 	else:
 		return None
 
 def createTag(name):
-	tag = Tag(name)
+	tag = models.Tag(name)
 	db.session.add(tag)
 	db.session.commit()
 	return tag
 
 def createPostTag(postid, tagid):
-	post_tag = PostTag(postid, tagid)
+	post_tag = models.PostTag(postid, tagid)
 	db.session.add(post_tag)
 	db.session.commit()
 	return post_tag
 
 def createPost(link, userid, groupid, fbid, photoid=None, album=None, thumbnail=None, body=None, likes=0, post_date=None, update_date=None):
-	post = Post(link, userid, groupid, fbid, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
+	post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
 	db.session.add(post)
 	db.session.commit()
 	return post
 
 def getCommentFromFbid(fbid):
-	comment = Comment.query.filter_by(fbid=fbid).first()
+	comment = models.Comment.query.filter_by(fbid=fbid).first()
 	if comment:
 		return comment
 	else:
@@ -131,7 +131,7 @@ def getCommentFromFbid(fbid):
 
 #not using update_date for now
 def createComment(postid, fbid, userid, body, create_date):
-	comment = Comment(postid, fbid, userid, body=body, create_date=create_date)
+	comment = models.Comment(postid, fbid, userid, body=body, create_date=create_date)
 	db.session.add(comment)
 	db.session.commit()
 	return comment
