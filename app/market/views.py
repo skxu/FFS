@@ -11,6 +11,7 @@ from flask.ext import wtf
 
 mod = Blueprint('market', __name__, url_prefix='/market')
 
+@mod.route('/browse/', methods=["GET","POST"])
 @mod.route('/browse', methods=["GET","POST"])
 @mod.route('/browse.html', methods=["GET","POST"])
 def home():
