@@ -10,7 +10,7 @@ import dateutil.parser as dateparser
 logging.basicConfig()
 
 debug = True
-nuke = False
+nuke = True
 print("hello from cron.py")
 
 FB_API_VERSION = app.config['FB_API_VERSION']
@@ -115,8 +115,8 @@ def createPostTag(postid, tagid):
 	db.session.commit()
 	return post_tag
 
-def createPost(link, userid, groupid, fbid, photoid=None, album=None, body=None, likes=0, post_date=None, update_date=None):
-	post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, body=body, likes=likes, post_date=post_date, update_date=update_date)
+def createPost(link, userid, groupid, fbid, photoid=None, album=None, thumbnail=None, body=None, likes=0, post_date=None, update_date=None):
+	post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
 	db.session.add(post)
 	db.session.commit()
 	return post
@@ -201,6 +201,7 @@ def processPosts(graph, group, posts):
 
 			album_link = None
 			photo = None
+			thumbnail = None
 			album_id = post.get('object_id')
 			if album_id:
 				#attempt to get photo object, otherwise make one
@@ -213,7 +214,7 @@ def processPosts(graph, group, posts):
 					photo = createPhoto(album_id,source,thumbnail)
 			photoid = None if not photo else photo.id	
 			post_date = dateparser.parse(post.get('created_time')).replace(tzinfo=None)
-			post = createPost(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, body=body, post_date=post_date, update_date=post_date)
+			post = createPost(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, thumbnail=thumbnail, body=body, post_date=post_date, update_date=post_date)
 			if debug:
 				print("NEW POST!!!", post)
 			stopwordcount = 0
@@ -260,7 +261,7 @@ def updatePostsJob():
 	getPosts(GROUP_ID)
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(updatePostsJob, 'interval', seconds=60)
+scheduler.add_job(updatePostsJob, 'interval', seconds=20)
 scheduler.start()
 
 

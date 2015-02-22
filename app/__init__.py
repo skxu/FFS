@@ -28,3 +28,5 @@ from app.users.views import mod as usersModule
 from app.market.views import mod as marketModule
 app.register_blueprint(usersModule)
 app.register_blueprint(marketModule)
+
+#TODO create API & make separate webapp
