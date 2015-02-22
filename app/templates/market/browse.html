@@ -77,9 +77,9 @@
                 </div>
                 <div class="panel-body">
                   {% if post.body != None %}
-                  {{ post.body }}
+                  {{ post.body|urlize }}
                   {% elif post.getPhoto().body != None %}
-                  {{ post.getPhoto().body }}
+                  {{ post.getPhoto().body|urlize }}
                   {% else %}
                   {{ "" }}
                   {% endif %}
