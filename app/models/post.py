@@ -2,19 +2,51 @@ from app import db
 from app.users import models
 
 
-def searchPost(query):
-	sql  = "SELECT p.* "
-	sql += "FROM tags t, posts p, posts_tags pt "
-	sql += "WHERE pt.tagid = t.id "
-	sql += "AND (t.name in ("
-	for word in query.split(" "):
-		if not word or word == '':
-			continue
-		sql+="'"+word+"', "
-	sql  = sql[:-2]
-	sql += ")) "
-	sql += "AND p.id = pt.postid "
-	sql += "GROUP BY p.id"
+def searchPost(query=None, min_val=None, max_val=None, offset=None):
+	if not query and not min_val and not max_val:
+		return []
+	sql = "SELECT p.* "
+	
+	if query:
+		sql += "FROM tags t, posts p, posts_tags pt "
+		sql += "WHERE pt.tagid = t.id "
+		sql += "AND (t.name in ("
+		for word in query.split(" "):
+			if not word or word == '':
+				continue
+			sql+="'"+word+"', "
+		sql  = sql[:-2]
+		sql += ")) "
+		sql += "AND p.id = pt.postid "
+		
+		if min_val:
+			sql += "AND p.price > "+str(min_val)+" "
+		if max_val:
+			sql += "AND p.price < "+str(max_val)+" "
+
+		sql += "GROUP BY p.id "
+		sql += "ORDER BY p.update_date DESC "
+		sql += "LIMIT 10 "
+		if offset:
+			sql += "OFFSET "+str(offset)
+
+	else:
+		sql += "FROM posts p "
+
+		if min_val and not max_val:
+			sql += "WHERE p.price > "+str(min_val) + " "
+		elif max_val and not min_val:
+			sql += "WHERE p.price < "+str(max_val) + " "
+			sql += "AND p.price > "+"0.0 "
+		elif max_val and min_val:
+			sql += "WHERE p.price < "+str(max_val) + " "
+			sql += "AND p.price > "+str(min_val) + " "
+
+		sql += "ORDER BY p.update_date DESC "
+		sql += "LIMIT 10 "
+		if offset:
+			sql += "OFFSET "+str(offset)
+
 	print(sql)
 	result = db.engine.execute(sql)
 	posts = []

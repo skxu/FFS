@@ -4,12 +4,47 @@ button:focus { outline: none; }
 	text-align: center;
 }
 
-#search_box {
+#submit_box {
 	line-height: 0px;
 	font-size: 12px;
 	height: 20px;
 	margin-top: 10px;
 	margin-bottom: 10px;
+}
+
+#search_box {
+	
+}
+
+#search_container {
+	display: inline-block;
+	width:70%;
+}
+
+.form-control {
+	font-size: 12px;
+	display: inline-block;
+	margin-right: 0px;
+	margin-left: 0px;
+
+}
+
+.form_field {
+	display: inline-block;
+	margin: 0px;
+	padding: 0px;
+	width:100%;
+}
+
+#min {
+	display: inline-block;
+	margin-left: 4%;
+	width:12%;
+}
+
+#max {
+	display: inline-block;
+	width:12%;
 }
 
 .thumbnail {
@@ -25,6 +60,18 @@ button:focus { outline: none; }
 .price {
 	margin-left: 15px;
 	font-size: 12px;
+}
+
+
+.col-md-1 .form-group{
+	position: relative;
+	margin-top: 50px;
+}
+
+.col-md-1 .form-group .form-control {
+	position: relative;
+	width:55px;
+	display:inline-block;
 }
 
 .comment_toggle {

@@ -18,19 +18,30 @@ def home():
   form = SearchForm(request.form)
 
   if form.validate_on_submit():
-    new_query = quote_plus(form.query.data)
+    new_query = ""
+
+    if form.query.data:
+      new_query+="query="+quote_plus(form.query.data)+"&"
+    if form.min_field.data:
+      new_query+="min="+quote_plus(str(form.min_field.data))+"&"
+    if form.max_field.data:
+      new_query+="max="+quote_plus(str(form.max_field.data))
     
-    return redirect("market/browse?query="+new_query)
-  else:
-    print(request.method)
+    return redirect("market/browse?"+new_query)
+  
   
 
   posts = []
   query = request.args.get('query')
-  if query:
+  min_val = request.args.get('min')
+  max_val = request.args.get('max')
+  print(form.errors)
+  if query or min_val or max_val:
     print(query)
-    query = unquote(query)
-    posts = searchPost(query)
+    query = None if not query else unquote(query)
+    min_val = None if not min_val else unquote(min_val)
+    max_val = None if not max_val else unquote(max_val)
+    posts = searchPost(query=query, min_val=min_val, max_val=max_val)
   else:
     posts = models.Post.query.filter_by(groupid=1).order_by(models.Post.update_date.desc()).limit(10).all()
   return render_template("market/browse.html", user=g.user, posts=posts, form=form)
