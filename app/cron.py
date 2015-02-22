@@ -10,7 +10,7 @@ import dateutil.parser as dateparser
 logging.basicConfig()
 
 debug = True
-nuke = True
+nuke = False
 print("hello from cron.py")
 
 FB_API_VERSION = app.config['FB_API_VERSION']
@@ -38,11 +38,12 @@ def getAlbumURL(fbid):
 	url = "https://www.facebook.com/photo.php?fbid="+fbid
 	return url
 
-def getPhotoURLs(graph, fbid):
+def getPhotoInfo(graph, fbid):
 	photo = graph.get_object(fbid)
 	thumbnail = photo.get('picture')
 	source = photo.get('source')
-	return (source, thumbnail)
+	body = photo.get('name')
+	return (source, thumbnail, body)
 
 def getPhotoFromFbid(fbid):
 	photo = models.Photo.query.filter_by(fbid=fbid).first()
@@ -51,8 +52,8 @@ def getPhotoFromFbid(fbid):
 	else:
 		return None
 
-def createPhoto(fbid, source, thumbnail):
-	photo = models.Photo(fbid,source,thumbnail)
+def createPhoto(fbid, source, thumbnail, body):
+	photo = models.Photo(fbid,source,thumbnail, body=body)
 	db.session.add(photo)
 	db.session.commit()
 	return photo
@@ -129,8 +130,8 @@ def getCommentFromFbid(fbid):
 		return None
 
 #not using update_date for now
-def createComment(postid, userid, body, create_date):
-	comment = models.Comment(postid, userid, body=body, create_date=create_date)
+def createComment(postid, fbid, userid, body, create_date):
+	comment = models.Comment(postid, fbid, userid, body=body, create_date=create_date)
 	db.session.add(comment)
 	db.session.commit()
 	return comment
@@ -156,7 +157,7 @@ def getPosts(group_id):
 	#let's go through the old posts since we don't have that data yet!
 	if debug:
 		counter = 0
-		while counter < 5:
+		while counter < 10:
 			next_url = posts.get('paging').get('next')
 			posts = graph.direct_request(next_url)
 			processPosts(graph, group, posts)
@@ -177,6 +178,11 @@ def processPosts(graph, group, posts):
 				#we need to update!
 				print("updating post",update_date.replace(tzinfo=None), post_obj.update_date.replace(tzinfo=None))
 				post_obj.body = post.get('message')
+				
+				if post_obj.body == None:
+					print("AHHH", post)
+			
+
 				#TODO: refilter tags & stuff
 				post_obj.update_date = update_date.replace(tzinfo=None)
 				db.session.commit()
@@ -196,6 +202,10 @@ def processPosts(graph, group, posts):
 				user = createUser(fb_userid, name=fb_name)
 
 			body = post.get('message')
+			
+			if body == None:
+				print("AHHH", post)
+			
 			comments = post.get('comments')
 			link = getPostURL(fb_postid)
 
@@ -208,10 +218,11 @@ def processPosts(graph, group, posts):
 				photo = getPhotoFromFbid(album_id)
 				album_link = getAlbumURL(album_id)
 				if not photo:
-					photo_urls = getPhotoURLs(graph, album_id)
-					source = photo_urls[0]
-					thumbnail = photo_urls[1]
-					photo = createPhoto(album_id,source,thumbnail)
+					photo_info = getPhotoInfo(graph, album_id)
+					source = photo_info[0]
+					thumbnail = photo_info[1]
+					body = photo_info[2]
+					photo = createPhoto(album_id, source, thumbnail, body)
 			photoid = None if not photo else photo.id	
 			post_date = dateparser.parse(post.get('created_time')).replace(tzinfo=None)
 			post = createPost(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, thumbnail=thumbnail, body=body, post_date=post_date, update_date=post_date)
@@ -242,7 +253,8 @@ def processComments(post, comments):
 		return
 	for comment in comments.get('data'):
 		fb_userid = comment.get('from').get('id')
-		comment_obj = getCommentFromFbid(fb_userid)
+		fb_commentid = comment.get('id')
+		comment_obj = getCommentFromFbid(fb_commentid)
 		if comment_obj:
 			continue
 		fb_name = comment.get('from').get('name')
@@ -251,7 +263,7 @@ def processComments(post, comments):
 			user = createUser(fb_userid, name=fb_name)
 		body = comment.get('message')
 		create_date = dateparser.parse(comment.get('created_time'))
-		comment = createComment(post.id, user.id, body=body, create_date=create_date)
+		comment = createComment(post.id, fb_commentid, user.id, body=body, create_date=create_date)
 			
 if nuke:
 	db.drop_all()

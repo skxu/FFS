@@ -1,3 +1,25 @@
-.test {
-	font-size: 30px;
+.brand {
+	text-align: center;
+}
+
+
+
+.panel-title .btn{
+	height:17px;
+	line-height: 0px;
+	position: relative;
+	float: right;
+	border:1px;
+}
+
+.panel-title .glyphicon {
+	font-size: 7px;
+}
+
+.panel-body {
+	padding-bottom:0px;
+}
+
+.panel {
+	border-radius: 4px;
 }
