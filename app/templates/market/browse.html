@@ -101,6 +101,30 @@
           {% endfor %}
         </tbody>
       </table>
+      <div class="navigation">
+        {% set url = "/market/browse?" %}
+        {% if query != None %}
+        {% set url = url + "query="+query+"&" %}
+        {% endif %}
+        {% if min_val != None %}
+        {% set url = url + "min_val="+min_val+"&" %}
+        {% endif %}
+        {% if max_val != None %}
+        {% set url = url + "max_val="+max_val+"&" %}
+        {% endif %}
+        {% if offset != None %}
+        {% set next_offset = (offset|int+10)|string %}
+        {% set next_url = url + "offset="+next_offset %}
+        {% if offset|int >= 10 %}
+          {% set prev_offset = (offset|int-10)|string %}
+          {% set prev_url = url + "offset="+prev_offset %}
+        {% else %}
+          {% set prev_url = url + "offset=0" %}
+        {% endif %}
+        {% endif %}
+        <a class="navigation_link", href={{prev_url|escape}}><i class="fa fa-arrow-circle-left"></i>PREV</a><i class="fa fa-heart-o"></i><a class="navigation_link", href={{next_url|escape}}>NEXT<i class="fa fa-arrow-circle-right"></i></a>
+    
+      </div>
     </div>
   </div>
 </div>

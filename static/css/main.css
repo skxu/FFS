@@ -105,3 +105,12 @@ button:focus { outline: none; }
 	border-bottom: 1px solid #ddd;
 }
 
+.navigation {
+	text-align: center;
+}
+
+.navigation_link {
+	margin-left: 10px;
+	margin-right: 10px;
+	padding-bottom: 25px;
+}
