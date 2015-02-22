@@ -36,6 +36,5 @@ def searchPost(query):
 		post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, category=category, post_date=post_date, update_date=update_date)
 		post.id = id;
 		posts.append(post)
-	print(posts, posts[0].id)
 	return posts
 
