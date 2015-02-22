@@ -80,19 +80,19 @@ def getPostFromFbid(fbid):
 	else:
 		return None
 
-def getSaleGroupFromFbid(fbid):
-	group = models.SaleGroup.query.filter_by(fbid=fbid).first()
+def getGroupFromFbid(fbid):
+	group = models.Group.query.filter_by(fbid=fbid).first()
 	if group:
 		return group
 	else:
 		return None
 
-def getSaleGroupName(graph, fbid):
+def getGroupName(graph, fbid):
 	group = graph.get_object(fbid)
 	return group['name']
 
-def createSaleGroup(fbid, name):
-	group = models.SaleGroup(fbid, name)
+def createGroup(fbid, name):
+	group = models.Group(fbid, name)
 	db.session.add(group)
 	db.session.commit()
 	return group
@@ -145,10 +145,10 @@ def extendAccessToken():
 def getPosts(group_id):
 	graph = facebook.GraphAPI(ACCESS_TOKEN, FB_API_VERSION)
 
-	group = getSaleGroupFromFbid(group_id)
+	group = getGroupFromFbid(group_id)
 	if not group:
-		name = getSaleGroupName(graph, group_id)
-		group = createSaleGroup(group_id, name)
+		name = getGroupName(graph, group_id)
+		group = createGroup(group_id, name)
 
 	posts = graph.get_connections(group_id, "feed", limit=100)
 	print(posts.get('paging'))
