@@ -15,7 +15,7 @@ r = re.compile("[\$](\d+(?:\.\d{1,2})?)")
 
 PRICE_UKNOWN = float(-1)
 debug = True
-nuke = True
+nuke = False
 print("hello from cron.py")
 
 FB_API_VERSION = app.config['FB_API_VERSION']
@@ -162,7 +162,7 @@ def getPosts(group_id):
 	#let's go through the old posts since we don't have that data yet!
 	if debug:
 		counter = 0
-		while counter < 50:
+		while counter < 10:
 			next_url = posts.get('paging').get('next')
 			posts = graph.direct_request(next_url)
 			processPosts(graph, group, posts)
@@ -281,7 +281,7 @@ def updatePostsJob():
 	getPosts(GROUP_ID)
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(updatePostsJob, 'interval', seconds=120)
+scheduler.add_job(updatePostsJob, 'interval', seconds=60)
 scheduler.start()
 
 
