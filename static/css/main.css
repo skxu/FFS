@@ -1,25 +1,60 @@
+button:focus { outline: none; }
+
 .brand {
 	text-align: center;
 }
 
-
-
-.panel-title .btn{
-	height:17px;
+#search_box {
 	line-height: 0px;
-	position: relative;
-	float: right;
-	border:1px;
+	font-size: 12px;
+	height: 20px;
+	margin-top: 10px;
+	margin-bottom: 10px;
 }
 
-.panel-title .glyphicon {
-	font-size: 7px;
+.thumbnail {
+	width: 100px;
 }
+
+.post {
+	position: relative;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.price {
+	margin-left: 15px;
+	font-size: 12px;
+}
+
+.comment_toggle {
+	float:right;
+	border: 0px;
+	background: #F5F5F5;
+	width: 16px;
+	height: 16px;
+	padding: 0px;
+}
+
 
 .panel-body {
-	padding-bottom:0px;
+	padding-bottom:10px;
 }
 
 .panel {
 	border-radius: 4px;
 }
+
+.panel-group .panel {
+	border:0px;
+}
+
+
+.panel-group {
+	margin-bottom: 0px;
+}
+
+.panel-body {
+	border-bottom: 1px solid #ddd;
+}
+

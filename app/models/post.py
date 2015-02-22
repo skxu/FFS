@@ -30,10 +30,11 @@ def searchPost(query):
 		userid = row[8]
 		groupid = row[9]
 		photoid = row[10]
-		post_date = row[11]
-		update_date = row[12]
+		price = row[11]
+		post_date = row[12]
+		update_date = row[13]
 
-		post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, category=category, post_date=post_date, update_date=update_date)
+		post = models.Post(link, userid, groupid, fbid, price=price, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, category=category, post_date=post_date, update_date=update_date)
 		post.id = id;
 		posts.append(post)
 	return posts

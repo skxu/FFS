@@ -3,12 +3,17 @@ from app.users import models
 from words import stopwords, punctuation
 from apscheduler.schedulers.background import BackgroundScheduler
 import string
+import re
 import facebook
 import logging
 import dateutil.parser as dateparser
 
 logging.basicConfig()
 
+#find the price in the post
+r = re.compile("[\$](\d+(?:\.\d{1,2})?)")
+
+PRICE_UKNOWN = float(-1)
 debug = True
 nuke = False
 print("hello from cron.py")
@@ -40,6 +45,7 @@ def getAlbumURL(fbid):
 
 def getPhotoInfo(graph, fbid):
 	photo = graph.get_object(fbid)
+	print("THIS IS A PHOTO", photo)
 	thumbnail = photo.get('picture')
 	source = photo.get('source')
 	body = photo.get('name')
@@ -116,8 +122,8 @@ def createPostTag(postid, tagid):
 	db.session.commit()
 	return post_tag
 
-def createPost(link, userid, groupid, fbid, photoid=None, album=None, thumbnail=None, body=None, likes=0, post_date=None, update_date=None):
-	post = models.Post(link, userid, groupid, fbid, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
+def createPost(link, userid, groupid, fbid, price=None, photoid=None, album=None, thumbnail=None, body=None, likes=0, post_date=None, update_date=None):
+	post = models.Post(link, userid, groupid, fbid, price=price, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
 	db.session.add(post)
 	db.session.commit()
 	return post
@@ -151,7 +157,6 @@ def getPosts(group_id):
 		group = createGroup(group_id, name)
 
 	posts = graph.get_connections(group_id, "feed", limit=100)
-	print(posts.get('paging'))
 	processPosts(graph, group, posts)
 	
 	#let's go through the old posts since we don't have that data yet!
@@ -167,6 +172,7 @@ def getPosts(group_id):
 
 def processPosts(graph, group, posts):
 	for post in posts.get('data'):
+		print(post)
 		fb_postid = post.get('id')
 		#see if the post already exists in our database
 		post_obj = getPostFromFbid(fb_postid)
@@ -202,9 +208,11 @@ def processPosts(graph, group, posts):
 				user = createUser(fb_userid, name=fb_name)
 
 			body = post.get('message')
-			
-			if body == None:
-				print("AHHH", post)
+			price = PRICE_UKNOWN
+			if body:
+				result = r.search(body)
+				if result:
+					price = float(result.group(1))
 			
 			comments = post.get('comments')
 			link = getPostURL(fb_postid)
@@ -225,7 +233,7 @@ def processPosts(graph, group, posts):
 					photo = createPhoto(album_id, source, thumbnail, body)
 			photoid = None if not photo else photo.id	
 			post_date = dateparser.parse(post.get('created_time')).replace(tzinfo=None)
-			post = createPost(link, user.id, group.id, fb_postid, photoid=photoid, album=album_link, thumbnail=thumbnail, body=body, post_date=post_date, update_date=post_date)
+			post = createPost(link, user.id, group.id, fb_postid, price=price, photoid=photoid, album=album_link, thumbnail=thumbnail, body=body, post_date=post_date, update_date=post_date)
 			if debug:
 				print("NEW POST!!!", post)
 			stopwordcount = 0

@@ -1,6 +1,7 @@
 from app import db
 from app.users import constants as USER
 
+UNKNOWN_PRICE = float(-1)
 UNKNOWN_TYPE = 0
 SELL_TYPE = 1
 BUY_TYPE = 2
@@ -58,13 +59,14 @@ class Post(db.Model):
 	fbid = db.Column(db.Integer, unique = True)
 	link = db.Column(db.String(80))
 	album = db.Column(db.String(80), nullable=True)
-	thumbnail = db.Column(db.String(80), default="/static/img/thumb.gif")
+	thumbnail = db.Column(db.String(80), default="/static/img/thumb.png")
 	body = db.Column(db.Text)
 	likes = db.Column(db.Integer, default=0)
 	category = db.Column(db.Integer, default=UNKNOWN_TYPE)
 	userid = db.Column(db.Integer, db.ForeignKey("users_user.id"), nullable=False)
 	groupid = db.Column(db.Integer, db.ForeignKey("groups.id"), nullable=False)
 	photoid = db.Column(db.Integer, db.ForeignKey("photos.id"), nullable=True)
+	price = db.Column(db.Float, default=UNKNOWN_PRICE)
 	post_date = db.Column(db.DateTime)
 	update_date = db.Column(db.DateTime)
 
@@ -85,7 +87,7 @@ class Post(db.Model):
 
 
 
-	def __init__(self, link, userid, groupid, fbid, photoid=None, album=None, thumbnail=None, body=None, likes=0, category=None, post_date=None, update_date=None):
+	def __init__(self, link, userid, groupid, fbid, photoid=None, album=None, thumbnail=None, body=None, likes=0, category=None, price=None, post_date=None, update_date=None):
 		self.link = link
 		self.album = album
 		self.thumbnail = thumbnail
@@ -96,6 +98,7 @@ class Post(db.Model):
 		self.groupid = groupid
 		self.fbid = fbid
 		self.photoid = photoid
+		self.price = price
 		self.post_date = post_date
 		self.update_date = update_date
 

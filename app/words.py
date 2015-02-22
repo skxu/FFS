@@ -650,3 +650,6 @@ buywords = [
 ]
 
 punctuation = {ord(c): None for c in string.punctuation}
+
+#we want the $$$$$$$$
+punctuation.pop(36)
