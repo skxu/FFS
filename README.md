@@ -4,7 +4,8 @@ TODO for FFS
 
 ##High priority
   
-  
+* Retain query on search  
+  * fill out form based on URL
 * User login
 * Personalize groups/location  
 * Keyword notifications  
