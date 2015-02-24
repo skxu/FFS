@@ -16,7 +16,7 @@ r = re.compile("[\$](\d+(?:\.\d{1,2})?)")
 PRICE_UKNOWN = float(-1)
 debug = True
 nuke = False
-print("hello from cron.py")
+app.logger.debug("hello from cron.py")
 
 FB_API_VERSION = app.config['FB_API_VERSION']
 FB_APP_ID = app.config['FB_APP_ID']
@@ -28,7 +28,7 @@ ACCESS_TOKEN = app.config['ACCESS_TOKEN']
 
 #temp, eventually use ALLLL the groups
 GROUP_ID = app.config['GROUP_ID']
-print("GROUP_ID:", GROUP_ID)
+app.logger.debug("GROUP_ID:" + str(GROUP_ID))
 
 #utilities
 #these need to be put into respective models eventually
@@ -45,7 +45,7 @@ def getAlbumURL(fbid):
 
 def getPhotoInfo(graph, fbid):
 	photo = graph.get_object(fbid)
-	print("THIS IS A PHOTO", photo)
+	#app.logger.debug("THIS IS A PHOTO: "+str(photo))
 	thumbnail = photo.get('picture')
 	source = photo.get('source')
 	body = photo.get('name')
@@ -160,34 +160,28 @@ def getPosts(group_id):
 	processPosts(graph, group, posts)
 	
 	#let's go through the old posts since we don't have that data yet!
-	if debug:
-		counter = 0
-		while counter < 10:
-			next_url = posts.get('paging').get('next')
-			posts = graph.direct_request(next_url)
-			processPosts(graph, group, posts)
-			counter+=1
+	counter = 0
+	while counter < 10:
+		next_url = posts.get('paging').get('next')
+		posts = graph.direct_request(next_url)
+		processPosts(graph, group, posts)
+		counter+=1
 		
 
 
 def processPosts(graph, group, posts):
 	for post in posts.get('data'):
-		print(post)
+		#app.logger.debug(post)
 		fb_postid = post.get('id')
 		#see if the post already exists in our database
 		post_obj = getPostFromFbid(fb_postid)
 		if post_obj != None:
-			print("post exists!", post_obj)
+			app.logger.debug("post exists")
 			#update the post if needed
 			update_date = dateparser.parse(post.get('updated_time'))
 			if update_date.replace(tzinfo=None) > post_obj.update_date.replace(tzinfo=None):
 				#we need to update!
-				print("updating post",update_date.replace(tzinfo=None), post_obj.update_date.replace(tzinfo=None))
 				post_obj.body = post.get('message')
-				
-				if post_obj.body == None:
-					print("AHHH", post)
-			
 
 				#TODO: refilter tags & stuff
 				post_obj.update_date = update_date.replace(tzinfo=None)
@@ -235,7 +229,7 @@ def processPosts(graph, group, posts):
 			post_date = dateparser.parse(post.get('created_time')).replace(tzinfo=None)
 			post = createPost(link, user.id, group.id, fb_postid, price=price, photoid=photoid, album=album_link, thumbnail=thumbnail, body=body, post_date=post_date, update_date=post_date)
 			if debug:
-				print("NEW POST!!!", post)
+				app.logger.debug("NEW POST!")
 			stopwordcount = 0
 			if body:
 				for word in body.split(' '):
@@ -250,8 +244,6 @@ def processPosts(graph, group, posts):
 						if not tag:
 							tag = createTag(word)
 						post_tag = createPostTag(post.id, tag.id)
-			if debug:
-				print ("stopwordcount", stopwordcount)
 
 			
 			processComments(post, comments)

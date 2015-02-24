@@ -107,10 +107,10 @@
         {% set url = url + "query="+query+"&" %}
         {% endif %}
         {% if min_val != None %}
-        {% set url = url + "min_val="+min_val+"&" %}
+        {% set url = url + "min="+min_val+"&" %}
         {% endif %}
         {% if max_val != None %}
-        {% set url = url + "max_val="+max_val+"&" %}
+        {% set url = url + "max="+max_val+"&" %}
         {% endif %}
         {% if offset != None %}
         {% set next_offset = (offset|int+10)|string %}

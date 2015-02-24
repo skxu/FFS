@@ -45,3 +45,8 @@ Temporary Items
 *.pyc
 
 app.db
+app/users/constants.pyc
+app/users/models.pyc
+config.pyc
+ffs.log
+app.db

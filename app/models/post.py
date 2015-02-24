@@ -1,10 +1,11 @@
-from app import db
+from app import db, app
 from app.users import models
 
 
+
 def searchPost(query=None, min_val=None, max_val=None, offset=None):
-	if not query and not min_val and not max_val:
-		return []
+	app.logger.debug("entering searchPost")
+	
 	sql = "SELECT p.* "
 	
 	if query:
@@ -36,18 +37,20 @@ def searchPost(query=None, min_val=None, max_val=None, offset=None):
 		if min_val and not max_val:
 			sql += "WHERE p.price > "+str(min_val) + " "
 		elif max_val and not min_val:
+			app.logger.debug("max and not min")
 			sql += "WHERE p.price < "+str(max_val) + " "
 			sql += "AND p.price > "+"0.0 "
 		elif max_val and min_val:
 			sql += "WHERE p.price < "+str(max_val) + " "
 			sql += "AND p.price > "+str(min_val) + " "
-
+		else:
+			sql += "WHERE p.price > "+"0.0 "
 		sql += "ORDER BY p.update_date DESC "
 		sql += "LIMIT 10 "
 		if offset:
 			sql += "OFFSET "+str(offset)
 
-	print(sql)
+	app.logger.debug(sql)
 	result = db.engine.execute(sql)
 	posts = []
 	for row in result:
