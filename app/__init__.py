@@ -64,4 +64,6 @@ from app.market.views import mod as marketModule
 app.register_blueprint(usersModule)
 app.register_blueprint(marketModule)
 
+from app.market import filters
+
 #TODO create API & make separate webapp

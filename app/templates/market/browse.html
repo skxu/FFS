@@ -72,8 +72,9 @@
                       {{ post.price }}
                     {% endif %}
                     </span>
+
                   </h3>
-                  
+                  <span class="time">Last updated: {{ post.update_date|formatdate }}</span>
                 </div>
                 <div class="panel-body">
                   {% if post.body != None %}
