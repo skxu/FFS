@@ -43,8 +43,7 @@ def searchPost(query=None, min_val=None, max_val=None, offset=None):
 		elif max_val and min_val:
 			sql += "WHERE p.price < "+str(max_val) + " "
 			sql += "AND p.price > "+str(min_val) + " "
-		else:
-			sql += "WHERE p.price > "+"0.0 "
+		
 		sql += "ORDER BY p.update_date DESC "
 		sql += "LIMIT 10 "
 		if offset:
