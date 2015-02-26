@@ -44,7 +44,6 @@ def home():
     offset = 0 if not offset else offset
     posts = searchPost(query=query, min_val=min_val, max_val=max_val, offset=offset)
   else:
-    #posts = models.Post.query.filter_by(groupid=1).order_by(models.Post.update_date.desc()).offset(offset).limit(10).all()
     app.logger.debug(max_val)
     offset = 0 if not offset else offset
     posts = searchPost(offset=offset)

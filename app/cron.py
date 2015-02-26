@@ -1,5 +1,12 @@
 from app import db, app
 from app.users import models
+from app.models.comment import Comment
+from app.models.group import Group
+from app.models.photo import Photo
+from app.models.post import Post
+from app.models.tag import Tag
+from app.models.posttag import PostTag
+
 from words import stopwords, punctuation
 from apscheduler.schedulers.background import BackgroundScheduler
 import string
@@ -31,7 +38,7 @@ GROUP_ID = app.config['GROUP_ID']
 app.logger.debug("GROUP_ID:" + str(GROUP_ID))
 
 #utilities
-#these need to be put into respective models eventually
+#these need to be put into respective eventually
 def getPostURL(id):
 	id_list = id.split("_")
 	group_id = id_list[0]
@@ -52,42 +59,42 @@ def getPhotoInfo(graph, fbid):
 	return (source, thumbnail, body)
 
 def getPhotoFromFbid(fbid):
-	photo = models.Photo.query.filter_by(fbid=fbid).first()
+	photo = Photo.query.filter_by(fbid=fbid).first()
 	if photo:
 		return photo
 	else:
 		return None
 
 def createPhoto(fbid, source, thumbnail, body):
-	photo = models.Photo(fbid,source,thumbnail, body=body)
+	photo = Photo(fbid,source,thumbnail, body=body)
 	db.session.add(photo)
 	db.session.commit()
 	return photo
 
-#returns models.User
+#returns User
 def getUserFromFbid(fbid):
-	user = models.User.query.filter_by(fbid=fbid).first()
+	user = User.query.filter_by(fbid=fbid).first()
 	if user:
 		return user
 	else:
 		return None
 
 def createUser(fbid, name=None):
-	user = models.User(fbid=fbid, name=name)
+	user = User(fbid=fbid, name=name)
 	db.session.add(user)
 	db.session.commit()
 	return user
 
-#returns models.Post
+#returns Post
 def getPostFromFbid(fbid):
-	post = models.Post.query.filter_by(fbid=fbid).first()
+	post = Post.query.filter_by(fbid=fbid).first()
 	if post:
 		return post
 	else:
 		return None
 
 def getGroupFromFbid(fbid):
-	group = models.Group.query.filter_by(fbid=fbid).first()
+	group = Group.query.filter_by(fbid=fbid).first()
 	if group:
 		return group
 	else:
@@ -98,38 +105,38 @@ def getGroupName(graph, fbid):
 	return group['name']
 
 def createGroup(fbid, name):
-	group = models.Group(fbid, name)
+	group = Group(fbid, name)
 	db.session.add(group)
 	db.session.commit()
 	return group
 
 def getTagFromName(name):
-	tag = models.Tag.query.filter_by(name=name).first()
+	tag = Tag.query.filter_by(name=name).first()
 	if tag:
 		return tag
 	else:
 		return None
 
 def createTag(name):
-	tag = models.Tag(name)
+	tag = Tag(name)
 	db.session.add(tag)
 	db.session.commit()
 	return tag
 
 def createPostTag(postid, tagid):
-	post_tag = models.PostTag(postid, tagid)
+	post_tag = PostTag(postid, tagid)
 	db.session.add(post_tag)
 	db.session.commit()
 	return post_tag
 
 def createPost(link, userid, groupid, fbid, price=None, photoid=None, album=None, thumbnail=None, body=None, likes=0, post_date=None, update_date=None):
-	post = models.Post(link, userid, groupid, fbid, price=price, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
+	post = Post(link, userid, groupid, fbid, price=price, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
 	db.session.add(post)
 	db.session.commit()
 	return post
 
 def getCommentFromFbid(fbid):
-	comment = models.Comment.query.filter_by(fbid=fbid).first()
+	comment = Comment.query.filter_by(fbid=fbid).first()
 	if comment:
 		return comment
 	else:
@@ -137,7 +144,7 @@ def getCommentFromFbid(fbid):
 
 #not using update_date for now
 def createComment(postid, fbid, userid, body, create_date):
-	comment = models.Comment(postid, fbid, userid, body=body, create_date=create_date)
+	comment = Comment(postid, fbid, userid, body=body, create_date=create_date)
 	db.session.add(comment)
 	db.session.commit()
 	return comment
@@ -161,7 +168,7 @@ def getPosts(group_id):
 	
 	#let's go through the old posts since we don't have that data yet!
 	counter = 0
-	while counter < 10:
+	while counter < 50:
 		next_url = posts.get('paging').get('next')
 		posts = graph.direct_request(next_url)
 		processPosts(graph, group, posts)

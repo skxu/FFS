@@ -78,9 +78,9 @@
                 </div>
                 <div class="panel-body">
                   {% if post.body != None %}
-                  {{ post.body|urlize }}
+                  {{ post.body|urlize(40,true) }}
                   {% elif post.getPhoto().body != None %}
-                  {{ post.getPhoto().body|urlize }}
+                  {{ post.getPhoto().body|urlize(40,true) }}
                   {% else %}
                   {{ "" }}
                   {% endif %}
@@ -90,7 +90,7 @@
                     <div class="panel-collapse collapse" id={{ "comments-%d" % post.id }} aria-expanded="false">
                       <ul class="list-group">
                       {% for comment in post.getComments() %}
-                        <li class="list-group-item">{{ comment.body }}</li>
+                        <li class="list-group-item">{{ comment.body|urlize(40,true) }}</li>
                       {% endfor %}
                       </ul>
                     </div>
