@@ -18,5 +18,26 @@ class Comment(db.Model):
 		self.create_date = create_date
 		self.update_date = update_date
 
+	def save(self):
+		db.session.add(self)
+		db.session.commit()
+		return self
+
 	def __repr__(self):
 		return "Comment: %r\n" % self.body
+
+
+#not using update_date for now
+def createComment(postid, fbid, userid, body, create_date):
+	comment = Comment(postid, fbid, userid, body=body, create_date=create_date)
+	db.session.add(comment)
+	db.session.commit()
+	return comment
+
+
+def getCommentFromFbid(fbid):
+	comment = Comment.query.filter_by(fbid=fbid).first()
+	if comment:
+		return comment
+	else:
+		return None

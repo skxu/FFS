@@ -10,6 +10,18 @@ class PostTag(db.Model):
 		self.postid = postid
 		self.tagid = tagid
 
+	def save(self):
+		db.session.add(self)
+		db.session.commit()
+		return self
+
 	def __repr__(self):
 		return "Post ID: %r\nTag ID: %r\n" % (self.postid, self.tagid)
+
+
+def createPostTag(postid, tagid):
+	post_tag = PostTag(postid, tagid)
+	db.session.add(post_tag)
+	db.session.commit()
+	return post_tag
 

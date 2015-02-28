@@ -1,11 +1,6 @@
 from app import db, app
 from app.users import models
-from app.models.comment import Comment
-from app.models.group import Group
-from app.models.photo import Photo
-from app.models.post import Post
-from app.models.tag import Tag
-from app.models.posttag import PostTag
+from app.models import comment, group, photo, post, posttag, tag, user
 
 from words import stopwords, punctuation
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -20,9 +15,8 @@ logging.basicConfig()
 #find the price in the post
 r = re.compile("[\$](\d+(?:\.\d{1,2})?)")
 
-PRICE_UKNOWN = float(-1)
 debug = True
-nuke = False
+nuke = True
 app.logger.debug("hello from cron.py")
 
 FB_API_VERSION = app.config['FB_API_VERSION']
@@ -38,116 +32,10 @@ GROUP_ID = app.config['GROUP_ID']
 app.logger.debug("GROUP_ID:" + str(GROUP_ID))
 
 #utilities
-#these need to be put into respective eventually
-def getPostURL(id):
-	id_list = id.split("_")
-	group_id = id_list[0]
-	post_id = id_list[1]
-	url = "https://www.facebook.com/groups/"+group_id+"/permalink/"+post_id
-	return url
 
-def getAlbumURL(fbid):
-	url = "https://www.facebook.com/photo.php?fbid="+fbid
-	return url
 
-def getPhotoInfo(graph, fbid):
-	photo = graph.get_object(fbid)
-	#app.logger.debug("THIS IS A PHOTO: "+str(photo))
-	thumbnail = photo.get('picture')
-	source = photo.get('source')
-	body = photo.get('name')
-	return (source, thumbnail, body)
 
-def getPhotoFromFbid(fbid):
-	photo = Photo.query.filter_by(fbid=fbid).first()
-	if photo:
-		return photo
-	else:
-		return None
 
-def createPhoto(fbid, source, thumbnail, body):
-	photo = Photo(fbid,source,thumbnail, body=body)
-	db.session.add(photo)
-	db.session.commit()
-	return photo
-
-#returns User
-def getUserFromFbid(fbid):
-	user = User.query.filter_by(fbid=fbid).first()
-	if user:
-		return user
-	else:
-		return None
-
-def createUser(fbid, name=None):
-	user = User(fbid=fbid, name=name)
-	db.session.add(user)
-	db.session.commit()
-	return user
-
-#returns Post
-def getPostFromFbid(fbid):
-	post = Post.query.filter_by(fbid=fbid).first()
-	if post:
-		return post
-	else:
-		return None
-
-def getGroupFromFbid(fbid):
-	group = Group.query.filter_by(fbid=fbid).first()
-	if group:
-		return group
-	else:
-		return None
-
-def getGroupName(graph, fbid):
-	group = graph.get_object(fbid)
-	return group['name']
-
-def createGroup(fbid, name):
-	group = Group(fbid, name)
-	db.session.add(group)
-	db.session.commit()
-	return group
-
-def getTagFromName(name):
-	tag = Tag.query.filter_by(name=name).first()
-	if tag:
-		return tag
-	else:
-		return None
-
-def createTag(name):
-	tag = Tag(name)
-	db.session.add(tag)
-	db.session.commit()
-	return tag
-
-def createPostTag(postid, tagid):
-	post_tag = PostTag(postid, tagid)
-	db.session.add(post_tag)
-	db.session.commit()
-	return post_tag
-
-def createPost(link, userid, groupid, fbid, price=None, photoid=None, album=None, thumbnail=None, body=None, likes=0, post_date=None, update_date=None):
-	post = Post(link, userid, groupid, fbid, price=price, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
-	db.session.add(post)
-	db.session.commit()
-	return post
-
-def getCommentFromFbid(fbid):
-	comment = Comment.query.filter_by(fbid=fbid).first()
-	if comment:
-		return comment
-	else:
-		return None
-
-#not using update_date for now
-def createComment(postid, fbid, userid, body, create_date):
-	comment = Comment(postid, fbid, userid, body=body, create_date=create_date)
-	db.session.add(comment)
-	db.session.commit()
-	return comment
 
 def extendAccessToken():
 	graph = facebook.GraphAPI(ACCESS_TOKEN, FB_API_VERSION)
@@ -158,85 +46,101 @@ def extendAccessToken():
 def getPosts(group_id):
 	graph = facebook.GraphAPI(ACCESS_TOKEN, FB_API_VERSION)
 
-	group = getGroupFromFbid(group_id)
-	if not group:
-		name = getGroupName(graph, group_id)
-		group = createGroup(group_id, name)
+	group_obj = group.getGroupFromFbid(group_id)
+	if not group_obj:
+		name = group.getGroupName(graph, group_id)
+		#obsolete
+		#group_obj = createGroup(group_id, name)
+		group_obj = group.Group(group_id, name)
+		group_obj.save()
 
-	posts = graph.get_connections(group_id, "feed", limit=100)
-	processPosts(graph, group, posts)
+	posts_data = graph.get_connections(group_id, "feed", limit=100)
+	processPosts(graph, group_obj, posts_data)
 	
 	#let's go through the old posts since we don't have that data yet!
 	counter = 0
-	while counter < 50:
-		next_url = posts.get('paging').get('next')
-		posts = graph.direct_request(next_url)
-		processPosts(graph, group, posts)
+	while counter < 2:
+		next_url = posts_data.get('paging').get('next')
+		posts_data = graph.direct_request(next_url)
+		processPosts(graph, group_obj, posts_data)
 		counter+=1
 		
 
 
-def processPosts(graph, group, posts):
-	for post in posts.get('data'):
+def processPosts(graph, group_obj, posts_data):
+	for post_data in posts_data.get('data'):
 		#app.logger.debug(post)
-		fb_postid = post.get('id')
+		fb_postid = post_data.get('id')
 		#see if the post already exists in our database
-		post_obj = getPostFromFbid(fb_postid)
+		post_obj = post.getPostFromFbid(fb_postid)
 		if post_obj != None:
 			app.logger.debug("post exists")
 			#update the post if needed
-			update_date = dateparser.parse(post.get('updated_time'))
+			update_date = dateparser.parse(post_data.get('updated_time'))
 			if update_date.replace(tzinfo=None) > post_obj.update_date.replace(tzinfo=None):
 				#we need to update!
-				post_obj.body = post.get('message')
+				post_obj.body = post_data.get('message')
 
 				#TODO: refilter tags & stuff
 				post_obj.update_date = update_date.replace(tzinfo=None)
 				db.session.commit()
 				
-				comments = post.get('comments')
-				processComments(post_obj, comments)
+				comments_data = post_data.get('comments')
+				processComments(post_obj, comments_data)
 
 		#post does not exist in our database, make a new one		
 		else:
 			#assuming all posts have 'from'
-			fb_userid = post.get('from').get('id')
-			fb_name = post.get('from').get('name')
+			fb_userid = post_data.get('from').get('id')
+			fb_name = post_data.get('from').get('name')
 			
 			#attempt to get user object, otherwise make one
-			user = getUserFromFbid(fb_userid)
-			if not user:
-				user = createUser(fb_userid, name=fb_name)
+			user_obj = user.getUserFromFbid(fb_userid)
+			if not user_obj:
+				#user_obj = user.createUser(fb_userid, name=fb_name)
+				user_obj = user.User(fbid=fb_userid, name=fb_name)
+				user_obj.save()
 
-			body = post.get('message')
-			price = PRICE_UKNOWN
+			body = post_data.get('message')
+			
+			#default price unknown
+			price = post.UNKNOWN_PRICE
+			
+			#try to find price through regex matching
 			if body:
 				result = r.search(body)
 				if result:
 					price = float(result.group(1))
 			
-			comments = post.get('comments')
-			link = getPostURL(fb_postid)
+
+			comments_data = post_data.get('comments')
+			link = post.getPostURL(fb_postid)
 
 			album_link = None
-			photo = None
+			photo_obj = None
 			thumbnail = None
-			album_id = post.get('object_id')
+			album_id = post_data.get('object_id')
 			if album_id:
 				#attempt to get photo object, otherwise make one
-				photo = getPhotoFromFbid(album_id)
-				album_link = getAlbumURL(album_id)
-				if not photo:
-					photo_info = getPhotoInfo(graph, album_id)
+				photo_obj = photo.getPhotoFromFbid(album_id)
+				album_link = photo.getAlbumURL(album_id)
+				if not photo_obj:
+					photo_info = photo.getPhotoInfo(graph, album_id)
 					source = photo_info[0]
 					thumbnail = photo_info[1]
 					body = photo_info[2]
-					photo = createPhoto(album_id, source, thumbnail, body)
-			photoid = None if not photo else photo.id	
-			post_date = dateparser.parse(post.get('created_time')).replace(tzinfo=None)
-			post = createPost(link, user.id, group.id, fb_postid, price=price, photoid=photoid, album=album_link, thumbnail=thumbnail, body=body, post_date=post_date, update_date=post_date)
+					#photo_obj = photo.createPhoto(album_id, source, thumbnail, body)
+					photo_obj = photo.Photo(album_id, source, thumbnail, body)
+					photo_obj.save()
+			photoid = None if not photo_obj else photo_obj.id	
+			post_date = dateparser.parse(post_data.get('created_time')).replace(tzinfo=None)
+			#post_obj = post.createPost(link, user.id, group.id, fb_postid, price=price, photoid=photoid, album=album_link, thumbnail=thumbnail, body=body, post_date=post_date, update_date=post_date)
+			post_obj = post.Post(link, user_obj.id, group_obj.id, fb_postid, price=price, photoid=photoid, album=album_link, thumbnail=thumbnail, body=body, post_date=post_date, update_date=post_date)
+			post_obj.save()
+
 			if debug:
 				app.logger.debug("NEW POST!")
+			
 			stopwordcount = 0
 			if body:
 				for word in body.split(' '):
@@ -247,30 +151,38 @@ def processPosts(graph, group, posts):
 					if word in stopwords:
 						stopwordcount+=1
 					else:
-						tag = getTagFromName(word)
-						if not tag:
-							tag = createTag(word)
-						post_tag = createPostTag(post.id, tag.id)
+						tag_obj = tag.getTagFromName(word)
+						if not tag_obj:
+							#tag_obj = createTag(word)
+							tag_obj = tag.Tag(word)
+							tag_obj.save()
+						#post_tag = posttag.createPostTag(post.id, tag.id)
+						post_tag = posttag.PostTag(post_obj.id, tag_obj.id)
+						post_tag.save()
 
 			
-			processComments(post, comments)
+			processComments(post_obj, comments_data)
 
-def processComments(post, comments):
-	if comments == None:
+def processComments(post_obj, comments_data):
+	if comments_data == None:
 		return
-	for comment in comments.get('data'):
-		fb_userid = comment.get('from').get('id')
-		fb_commentid = comment.get('id')
-		comment_obj = getCommentFromFbid(fb_commentid)
+	for comment_data in comments_data.get('data'):
+		fb_userid = comment_data.get('from').get('id')
+		fb_commentid = comment_data.get('id')
+		comment_obj = comment.getCommentFromFbid(fb_commentid)
 		if comment_obj:
 			continue
-		fb_name = comment.get('from').get('name')
-		user = getUserFromFbid(fb_userid)
-		if not user:
-			user = createUser(fb_userid, name=fb_name)
-		body = comment.get('message')
-		create_date = dateparser.parse(comment.get('created_time'))
-		comment = createComment(post.id, fb_commentid, user.id, body=body, create_date=create_date)
+		fb_name = comment_data.get('from').get('name')
+		user_obj = user.getUserFromFbid(fb_userid)
+		if not user_obj:
+			#user = createUser(fb_userid, name=fb_name)
+			user_obj = user.User(fbid=fb_userid, name=fb_name)
+			user_obj.save()
+		body = comment_data.get('message')
+		create_date = dateparser.parse(comment_data.get('created_time'))
+		#comment_obj = createComment(post.id, fb_commentid, user.id, body=body, create_date=create_date)
+		comment_obj = comment.Comment(post_obj.id, fb_commentid, user_obj.id, body=body, create_date=create_date)
+		comment_obj.save()
 			
 if nuke:
 	db.drop_all()
@@ -280,7 +192,7 @@ def updatePostsJob():
 	getPosts(GROUP_ID)
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(updatePostsJob, 'interval', seconds=60)
+scheduler.add_job(updatePostsJob, 'interval', seconds=10)
 scheduler.start()
 
 

@@ -2,7 +2,8 @@ from flask import Blueprint, request, render_template, flash, g, session, redire
 
 from app import db, app
 from app.market.forms import SearchForm
-import app.users.models as models
+#import app.users.models as models
+from app.models.user import User
 from app.users.decorators import requires_login
 from app.models.post import searchPost
 from urllib import quote_plus
@@ -56,5 +57,5 @@ def before_request():
   """
   g.user = None
   if 'user_id' in session:
-    g.user = models.User.query.get(session['user_id'])
+    g.user = User.query.get(session['user_id'])
 

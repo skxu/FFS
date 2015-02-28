@@ -1,5 +1,5 @@
 from app import db, app
-from app.users.models import User
+from app.models.user import User
 from app.models.comment import Comment
 from app.models.photo import Photo
 
@@ -129,6 +129,33 @@ class Post(db.Model):
 		self.post_date = post_date
 		self.update_date = update_date
 
+	def save(self):
+		db.session.add(self)
+		db.session.commit()
+		return self
 
 	def __repr__(self):
 		return '<Link: %r>\nBody:\n%r\n' % (self.link, self.body)
+
+
+
+def createPost(link, userid, groupid, fbid, price=None, photoid=None, album=None, thumbnail=None, body=None, likes=0, post_date=None, update_date=None):
+	post = Post(link, userid, groupid, fbid, price=price, photoid=photoid, album=album, thumbnail=thumbnail, body=body, likes=likes, post_date=post_date, update_date=update_date)
+	db.session.add(post)
+	db.session.commit()
+	return post
+
+#returns Post
+def getPostFromFbid(fbid):
+	post = Post.query.filter_by(fbid=fbid).first()
+	if post:
+		return post
+	else:
+		return None
+
+def getPostURL(id):
+	id_list = id.split("_")
+	group_id = id_list[0]
+	post_id = id_list[1]
+	url = "https://www.facebook.com/groups/"+group_id+"/permalink/"+post_id
+	return url
