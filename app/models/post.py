@@ -7,10 +7,15 @@ UNKNOWN_PRICE = float(-1)
 UNKNOWN_TYPE = 0
 SELL_TYPE = 1
 BUY_TYPE = 2
+DEFAULT_GROUP_ID_LIST = [1,2]
 
-def searchPost(query=None, min_val=None, max_val=None, offset=None):
+def searchPost(group_list = None, query=None, min_val=None, max_val=None, offset=None):
 	app.logger.debug("entering searchPost")
-	
+
+	if not group_list:
+		group_list = DEFAULT_GROUP_ID_LIST
+
+
 	sql = "SELECT p.* "
 	
 	if query:
@@ -24,6 +29,11 @@ def searchPost(query=None, min_val=None, max_val=None, offset=None):
 		sql  = sql[:-2]
 		sql += ")) "
 		sql += "AND p.id = pt.postid "
+		sql += "AND (p.groupid in ("
+		for groupid in group_list:
+			sql+=str(groupid)+", "
+		sql = sql[:-2]
+		sql += ")) " 
 		
 		if min_val:
 			sql += "AND p.price > "+str(min_val)+" "
@@ -39,7 +49,7 @@ def searchPost(query=None, min_val=None, max_val=None, offset=None):
 	else:
 		sql += "FROM posts p "
 
-		if min_val and not max_val:
+		if not max_val and min_val:
 			sql += "WHERE p.price > "+str(min_val) + " "
 		elif max_val and not min_val:
 			app.logger.debug("max and not min")
@@ -49,6 +59,16 @@ def searchPost(query=None, min_val=None, max_val=None, offset=None):
 			sql += "WHERE p.price < "+str(max_val) + " "
 			sql += "AND p.price > "+str(min_val) + " "
 		
+		if not max_val and not min_val:
+			sql += "WHERE "
+		else:
+			sql += "AND "
+		sql+= "(p.groupid in ("
+		for groupid in group_list:
+			sql+=str(groupid)+", "
+		sql = sql[:-2]
+		sql += ")) "
+
 		sql += "ORDER BY p.update_date DESC "
 		sql += "LIMIT 10 "
 		if offset:

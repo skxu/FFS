@@ -27,9 +27,14 @@ FB_APP_NAME = app.config['FB_APP_NAME']
 #this isn't really the right way to do things
 ACCESS_TOKEN = app.config['ACCESS_TOKEN']
 
+
 #temp, eventually use ALLLL the groups
-GROUP_ID = app.config['GROUP_ID']
-app.logger.debug("GROUP_ID:" + str(GROUP_ID))
+GROUP_ID_LIST = app.config['GROUP_ID_LIST']
+BERKELEY_ID = app.config['BERKELEY_ID']
+NORTHWESTERN_ID = app.config['NORTHWESTERN_ID']
+
+app.logger.debug("BERKELEY_ID:" + str(BERKELEY_ID))
+app.logger.debug("NORTHWESTERN_ID:" + str(NORTHWESTERN_ID))
 
 #utilities
 
@@ -189,7 +194,8 @@ if nuke:
 	db.create_all()
 
 def updatePostsJob():
-	getPosts(GROUP_ID)
+	for groupid in GROUP_ID_LIST:
+		getPosts(groupid)
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(updatePostsJob, 'interval', seconds=30)

@@ -45,7 +45,6 @@ def home():
     offset = 0 if not offset else offset
     posts = searchPost(query=query, min_val=min_val, max_val=max_val, offset=offset)
   else:
-    app.logger.debug(max_val)
     offset = 0 if not offset else offset
     posts = searchPost(offset=offset)
   return render_template("market/browse.html", user=g.user, posts=posts, form=form, offset=offset, query=query, min_val=min_val, max_val=max_val)
