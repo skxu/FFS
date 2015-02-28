@@ -16,7 +16,7 @@ logging.basicConfig()
 r = re.compile("[\$](\d+(?:\.\d{1,2})?)")
 
 debug = True
-nuke = True
+nuke = False
 app.logger.debug("hello from cron.py")
 
 FB_API_VERSION = app.config['FB_API_VERSION']
@@ -192,7 +192,7 @@ def updatePostsJob():
 	getPosts(GROUP_ID)
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(updatePostsJob, 'interval', seconds=10)
+scheduler.add_job(updatePostsJob, 'interval', seconds=30)
 scheduler.start()
 
 
