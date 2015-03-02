@@ -1,6 +1,27 @@
 #FFS  
+Free & For Sale. Centralizing sales information.  
 
-TODO for FFS
+##Setup
+###Requirements  
+Install using "pip install <package_name>"
+  
+  
+* flask  
+* flask-sqlalchemy  
+* flask-bootstrap  
+* flask-wtf  
+* apscheduler  
+* python-dateutil  
+* facebook-sdk  
+* praw  
+
+###How to start server  
+```
+python run.py
+```  
+Go to [http://localhost:5000/market/browse](http://localhost:5000/market/browse)  
+  
+#TODO or Roadmap 
 
 ##High priority
   
